@@ -21,12 +21,15 @@ class CustomersController extends Controller
         return Customer::orderBy('name')->where('active' , 1)->get();
     }
 
-    public function detailed()
+    public function detailed(Request $request)
     {   
         return Customer::with(['balance' , 'fundsCount' , 'lastFund' , 'fundsDailyCount' , 'fundsMonthlyCount' ,'fundsYearCount' , 'fundsWeeklyCount' ])
                         ->where('active' , '=' , 1 )
+                        ->when($request->has('search') , function($query) use ($request){
+                            return $query->where('name' , 'like' , '%'.$request->input('search').'%');
+                        })
                         ->orderBy('name')
-                        ->get();
+                        ->paginate($request->get('itemsPerPage') , ['*'] , 'page' , $request->get('page'));
     }
 
     public function quickSearch(Request $request)
@@ -76,13 +79,13 @@ class CustomersController extends Controller
         $funds =  Fund::where('isOffer' , 0)->with(['customer' , 'customer.balance' , 'user' , 'lastUser' , 'delivery'])
         ->orderBy('created_at' , 'DESC')
                         ->where('customer_id', '=', $id->id)
-                        ->get();
+                        ->paginate($request->get('itemsPerPage') , ['*'] , 'page' , $request->get('page'));
         $summaries = array();
         $summaries[0] = (float)Fund::where('isOffer' , 0)->where('customer_id', '=', $id->id)
                             ->sum('cost');
-                            $summaries[1] = (float)Fund::where('isOffer' , 0)->where('customer_id', '=', $id->id)
-                            ->sum('payment');
-                            $summaries[2] = $result[0] - $result[1];
+        $summaries[1] = (float)Fund::where('isOffer' , 0)->where('customer_id', '=', $id->id)
+        ->sum('payment');
+        $summaries[2] = $result[0] - $result[1];
 
         $data = [
             'result' => $result,
