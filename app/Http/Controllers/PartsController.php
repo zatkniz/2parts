@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Part;
+use App\Models\Part;
 
 class PartsController extends Controller
 {

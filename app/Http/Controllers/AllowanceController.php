@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Allowance;
+use App\Models\Allowance;
 
 class AllowanceController extends Controller
 {

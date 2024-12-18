@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Employee;
-use App\Payroll;
-use JavaScript;
+use App\Models\Employee;
+use App\Models\Payroll;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 
 class PayrollController extends Controller
 {
@@ -43,7 +43,9 @@ class PayrollController extends Controller
             );
             $payroll->save();
         }
-        return Payroll::where('payroll_month' , $dt->month)->where('payroll_year' , $dt->year)->with('employee')->get();
+        return Payroll::where('payroll_month' , $dt->month)->where('payroll_year' , $dt->year)->whereHas('employee', function(Builder $query){
+            $query->where('active' , 1);
+        })->get()->load('employee');
     }
 
     public function singlePayroll(Employee $employee){

@@ -5,22 +5,43 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
-use JavaScript;
-use App\Customer;
-use App\Part;
-use App\Fund;
-use App\Balance;
-use App\Outfund;;
+use App\Models\Customer;
+use App\Models\Part;
+use App\Models\Fund;
+use App\Models\Cash;
+use App\Models\Balance;
+use App\Models\Frame;
+use App\Models\Outfund;;
 use Carbon\Carbon;
 use Event;
 use App\Events\FundSaved;
 use App\Events\FundUpdated;
+use App\Http\Controllers\OutcomesController;
 
 class FundsController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return 'view('daily-funds')';
+		$outcomesController = new OutcomesController();
+
+        return [
+            'funds' => $this->all($request),
+            'summaries' => $this->summaries($request),
+            'dailyCash' => $this->dailyCash(),
+            'outfunds' => $outcomesController->all($request),
+        ];
+    }
+	
+	public function getDailyFunds()
+    {
+		$outcomesController = new OutcomesController();
+
+        return [
+            'funds' => $this->all($request),
+            'summaries' => $this->summaries($request),
+            'dailyCash' => $this->dailyCash(),
+            'outfunds' => $outcomesController->all($request),
+        ];
     }
 
     public function pastFunds()
@@ -31,6 +52,24 @@ class FundsController extends Controller
     public function province()
     {
         return view('province');
+    }
+
+    public function dailyCash() {
+        $outfunds = (float)OutFund::where('created_at', '>=', Carbon::today())
+                    ->where(function($q) {
+                        $q->where('is_bank', 0)
+                        ->orWhereNull('is_bank');
+                    })
+                    ->sum('total');
+                    
+        $funds = (float)Fund::where('isOffer' , 0)
+                    ->where('isBank', 0)
+                    ->where('created_at', '>=', Carbon::today())
+                    ->sum('payment');
+
+        $cash = Cash::where('created_at', '>=', Carbon::today())->first();
+
+        return (isset($cash['amount']) ? $cash['amount'] : 0) + ($funds - $outfunds) ;
     }
 
     public function showPastFunds($date)
@@ -89,6 +128,13 @@ class FundsController extends Controller
         $summaries[3] = (float)OutFund::whereBetween('created_at', [$dateFrom, $dateTo])
                     ->sum('total');;
 
+        $data = [
+            'result' => $result,
+            'outfund' => $outfund,
+            'summaries' => $summaries,
+        ];
+
+        return response()->json($data);
         JavaScript::put([
             'result' => $result,
             'outfund' => $outfund,
@@ -148,7 +194,7 @@ class FundsController extends Controller
             ['balance' => 0]
         );
 
-        return $customer;
+        return $customer->id;
     }
 
     public function createNewPart(Request $request)
@@ -173,7 +219,11 @@ class FundsController extends Controller
         return Fund::with(['customer' , 'customer.balance' , 'user' , 'lastUser'])
                     ->orderBy('created_at' , 'ASC')
                     ->where('isOffer' , 1)
-                    ->get();
+					->where('created_at', '>=', Carbon::now()->subMonths(2))
+                    ->get()
+                    ->groupBy(function ($item, $key) {
+                        return $item['customer']['name'];
+                    });
     }
 
     public function allProvince(Request $request)
@@ -184,6 +234,44 @@ class FundsController extends Controller
                     ->whereRaw('cost > payment and (cost > deposit or deposit is null)')
                     // ->whereRaw('cost > deposit')
                     ->get();
+    }
+
+    public function customerSummaries ($customer) {
+        $result = array();
+        $result[0] =  number_format((float)Fund::where('isOffer' , 0)
+                            ->where('customer_id', $customer)
+                            ->where('isOffer' , 0)
+                            ->sum('cost'), 2, '.', '');
+        $result[1] = Fund::where('isOffer' , 0)
+                            ->where('customer_id', $customer)
+                            ->where('isOffer' , 0)
+                            ->sum('payment');
+        $result[2] = $result[0] - $result[1];
+        $result[3] = number_format((float)OutFund::where('created_at', '>=', Carbon::today())
+                    ->sum('total'), 2, '.', '');
+        $result[7] = number_format((float)OutFund::where('created_at', '>=', Carbon::today())
+                    ->where('is_bank' , 1)->sum('total'), 2, '.', '');
+        $result[8] = number_format((float)OutFund::where('created_at', '>=', Carbon::today())
+                    ->where(function($query) {
+                        return $query->where('is_bank' , 0)
+                                ->orWhereNull('is_bank');
+                    })
+                    ->sum('total'), 2, '.', '');
+        $result[4] =  number_format((float)Fund::where('isBank' , 0)
+                    ->where('isOffer' , 0)
+                    ->where('customer_id', $customer)
+                    ->sum('payment'), 2, '.', '');
+        $result[5] =  number_format((float)Fund::where('isBank' , 1)
+                    ->where('isOffer' , 0)
+                    ->where('customer_id', $customer)
+                    ->sum('payment'), 2, '.', '');
+        $result[6] = Fund::where('isOffer' , 0)
+                    ->where('price' , '>' , 0)
+                    ->where('credit' , null)
+                    ->where('customer_id', $customer)
+                    ->count();
+        $result[1] = number_format( $result[1], 2, '.', '');
+        return $result;
     }
 
     public function summaries(Request $request)
@@ -197,6 +285,14 @@ class FundsController extends Controller
                             ->sum('payment');
         $result[2] = $result[0] - $result[1];
         $result[3] = number_format((float)OutFund::where('created_at', '>=', Carbon::today())
+                    ->sum('total'), 2, '.', '');
+        $result[7] = number_format((float)OutFund::where('created_at', '>=', Carbon::today())
+                    ->where('is_bank' , 1)->sum('total'), 2, '.', '');
+        $result[8] = number_format((float)OutFund::where('created_at', '>=', Carbon::today())
+                    ->where(function($query) {
+                        return $query->where('is_bank' , 0)
+                                ->orWhereNull('is_bank');
+                    })
                     ->sum('total'), 2, '.', '');
         $result[4] =  number_format((float)Fund::where('isBank' , 0)->where('created_at', '>=', Carbon::today())
                     ->where('isOffer' , 0)
@@ -217,10 +313,14 @@ class FundsController extends Controller
         $fund = new Fund;
         $fund->fund_code = Carbon::now()->year.Carbon::now()->month.Carbon::now()->day.'-';
         $fund->body = $request->input('body');
+        $fund->saved_body = $request->input('saved_body');
+        $fund->earnings = $request->input('earnings');
         $fund->parts_codes = $request->input('parts_codes');
+        $fund->parts_places = $request->input('parts_places');
         $fund->car_model = $request->input('car_model');
         $fund->cars = $request->input('cars');
         $fund->price = $request->input('price');
+        $fund->saved_price = $request->input('saved_price');
         $fund->cost = $request->input('cost');
         $fund->total = $request->input('total');
         $fund->payment = $request->input('payment');
@@ -236,12 +336,33 @@ class FundsController extends Controller
         $fund->hasPay = $request->input('hasPay');
         $fund->comments = $request->input('comments');
         $fund->isOffer = $request->input('isOffer');
-        $fund->isBank = $request->input('isBank');        
+        $fund->isBank = $request->input('isBank');       
+        $fund->bank_id = $request->input('bank_id');       
         $fund->credit = $request->input('creditPrice');
-        $fund->created_at = Carbon::createFromDate( $request->input('pastDate')[2], $request->input('pastDate')[1], $request->input('pastDate')[0]);
+
+        if($request->has('pastDate')){
+            $fund->created_at = Carbon::createFromDate($request->input('pastDate'));
+        }
+        // $fund->created_at = Carbon::createFromDate( $request->input('pastDate')[2], $request->input('pastDate')[1], $request->input('pastDate')[0]);
         $fund->save();
         $fund->fund_code = Carbon::parse($fund->created_at)->year.Carbon::parse($fund->created_at)->month.Carbon::parse($fund->created_at)->day.'-'.$fund->id;
         $fund->save();
+        
+        $frame_item = $request->input('frame');
+        $frame = Frame::updateOrCreate(
+            ['id' => isset($frame_item['id']) ? $frame_item['id'] : null],
+            [
+                'name' => isset($frame_item['name']) ? $frame_item['name'] : null,
+                'car_number' => isset($frame_item['car_number']) ? $frame_item['car_number'] : null,
+                'brand' => isset($frame_item['brand']) ? $frame_item['brand'] : null,
+                'model' => isset($frame_item['model']) ? $frame_item['model'] : null,
+                'year' => isset($frame_item['year']) ? Carbon::create($frame_item['year'])->toDateTimeString() : null,
+            ]
+        );
+
+        $fund->frame()->associate($frame);
+        $fund->save();
+        
         $balance = Balance::firstOrNew(
             ['customer_id' => $request->input('customer_id')]
         );
@@ -257,17 +378,27 @@ class FundsController extends Controller
 
     public function updateFund(Request $request , Fund $fund)
     {
+        if($fund->isOffer && !$request->input('isOffer')) {
+            $fund->updated_at = Carbon::now();
+            $fund->created_at = Carbon::now();
+        }
+
         $fund->body = $request->input('body');
+        $fund->saved_body = $request->input('saved_body');
+        $fund->earnings = $request->input('earnings');
         $fund->parts_codes = $request->input('parts_codes');
+        $fund->parts_places = $request->input('parts_places');
         $fund->car_model = $request->input('car_model');
         $fund->cars = $request->input('cars');
         $fund->price = $request->input('price');
+        $fund->saved_price = $request->input('saved_price');
         $fund->cost = $request->input('cost');
         $fund->total = $request->input('total');
         $fund->credit = $request->input('creditPrice');
         $fund->comments = $request->input('comments');
         $fund->isOffer = $request->input('isOffer');
         $fund->isBank = $request->input('isBank');
+        $fund->bank_id = $request->input('bank_id');       
         if($request->input('isProvince') == 0){
             $fund->payment = $request->input('payment');
         }
@@ -278,6 +409,7 @@ class FundsController extends Controller
             $newFund = new Fund;
             $newFund->body = 'Είσπραξη Αντικαταβολής';
             $newFund->parts_codes = $request->input('parts_codes');
+            $newFund->parts_places = $request->input('parts_places');
             $newFund->car_model = $request->input('car_model');
             $newFund->cars = $request->input('cars');
             $newFund->payment = $request->input('payment');
@@ -333,7 +465,24 @@ class FundsController extends Controller
         //     $newFund->created_at = Carbon::now();
         //     $newFund->save();
         // }
+
         $fund->save();
+
+        $frame_item = $request->input('frame');
+        $frame = Frame::updateOrCreate(
+            ['id' => isset($frame_item['id']) ? $frame_item['id'] : null],
+            [
+                'name' => isset($frame_item['name']) ? $frame_item['name'] : null,
+                'car_number' => isset($frame_item['car_number']) ? $frame_item['car_number'] : null,
+                'brand' => isset($frame_item['brand']) ? $frame_item['brand'] : null,
+                'model' => isset($frame_item['model']) ? $frame_item['model'] : null,
+                'year' => isset($frame_item['year']) ? Carbon::create($frame_item['year'])->toDateTimeString() : null,
+            ]
+        );
+
+        $fund->frame()->associate($frame);
+        $fund->save();
+
         $balance = Balance::firstOrNew(
             ['customer_id' => $request->input('customer_id')]
         );
@@ -341,12 +490,12 @@ class FundsController extends Controller
         $balance->balance = Fund::where('isOffer' , 0)->where('customer_id' , $request->input('customer_id'))->where('isOffer' , 0)->sum('cost') - Fund::where('isOffer' , 0)->where('customer_id' , $request->input('customer_id'))->where('isOffer' , 0)->sum('payment') - Fund::where('isOffer' , 0)->where('customer_id' , $request->input('customer_id'))->where('isOffer' , 0)->sum('credit');
         }
         $balance->save();
-        broadcast(new FundSaved())->toOthers();
+        broadcast(new FundSaved());
         
         // FundUpdated
         // event(new FundUpdated());
 
-        return $balance;
+        return Fund::whereId($fund->id)->with(['customer' , 'customer.balance' , 'user' , 'lastUser' , 'delivery'])->first();
     }
 
     public function deleteFund(Request $request , Fund $fund )
@@ -359,22 +508,27 @@ class FundsController extends Controller
             $balance->balance = Fund::where('isOffer' , 0)->where('customer_id' , $request->input('customer_id'))->where('isOffer' , 0)->sum('cost') - Fund::where('isOffer' , 0)->where('customer_id' , $request->input('customer_id'))->where('isOffer' , 0)->sum('payment') - Fund::where('isOffer' , 0)->where('customer_id' , $request->input('customer_id'))->where('isOffer' , 0)->sum('credit');
         }
         $balance->save();
-        broadcast(new FundSaved())->toOthers();
+        broadcast(new FundSaved());
         return 'success';
     }
 
     public function mergeFunds(Request $request , Fund $startedCustomer , Fund $finishedCustomer )
     {
         $startedCustomer->body = $startedCustomer->body.','.$finishedCustomer->body;
+        $startedCustomer->body = $startedCustomer->saved_body.','.$finishedCustomer->saved_body;
+        $startedCustomer->earnings = $startedCustomer->earnings.','.$finishedCustomer->earnings;
         $startedCustomer->price = $startedCustomer->price.'%'.$finishedCustomer->price;                              
+        $startedCustomer->saved_price = $startedCustomer->saved_price.'%'.$finishedCustomer->saved_price;                              
         $startedCustomer->cars = $startedCustomer->cars.','.$finishedCustomer->cars;                              
         $startedCustomer->parts_codes = $startedCustomer->parts_codes.'%'.$finishedCustomer->parts_codes;                              
+        $startedCustomer->parts_places = $startedCustomer->parts_places.'%'.$finishedCustomer->parts_places;                              
         $startedCustomer->cost = $startedCustomer->cost + $finishedCustomer->cost;                              
         $startedCustomer->payment = $startedCustomer->payment + $finishedCustomer->payment;                              
         $startedCustomer->total = $startedCustomer->total + $finishedCustomer->total;                                                         
         $startedCustomer->car_model = $startedCustomer->car_model.','.$finishedCustomer->car_model;   
         $startedCustomer->save();    
-        $finishedCustomer->delete();                       
+        $finishedCustomer->delete();     
+        broadcast(new FundSaved());                  
         return $startedCustomer->body;
     }
 
@@ -386,7 +540,7 @@ class FundsController extends Controller
         $customer->email = $request->input('customer.email');
         $customer->save();
         Mail::send('email.invoice', ['fund' => $fund], function ($m) use ($fund , $customer) {
-            $m->from('info@2-parts.gr', 'Παρραγελία από 2-parts');
+            // $m->from('info@2-parts.gr', 'Παρραγελία από 2-parts');
 
             $m->to($customer->email)->subject('Κωδικός Παρραγελίας: ' . $fund->fund_code );
         });

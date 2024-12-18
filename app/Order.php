@@ -6,14 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
-    protected $fillable = [
-        'brand', 'code', 'quantity', 'info', 'user_id', 'done'
-    ];
+    protected $fillable = ['user_id', 'company_id'];
 
-    protected $with = ['user'];
-
-    public function user()
+    public function orderProducts()
     {
-        return $this->belongsTo('App\User');
+        return $this->hasMany('App\OrderProduct');
+    }
+
+    public function company()
+    {
+        return $this->belongsTo('App\Company');
     }
 }

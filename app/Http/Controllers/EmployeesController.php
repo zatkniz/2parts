@@ -3,19 +3,19 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Customer;
-use App\Employee;
-use App\Fund;
-use App\Payroll;
-use JavaScript;
+use App\Models\Customer;
+use App\Models\Employee;
+use App\Models\User;
+use App\Models\Fund;
+use App\Models\Payroll;
 use Carbon\Carbon;
 
 class EmployeesController extends Controller
 {
     public function index()
     {
-        $customers = Customer::orderBy('name')->get();
-        return view('employees' , compact('$customers'));
+        $customers = Employee::orderBy('name')->get();
+        return $customers;
     }
 
     public function create()
@@ -59,6 +59,7 @@ class EmployeesController extends Controller
 
     public function singleEmployee(Request $request , Employee $employee)
     {
+        return $employee;
         JavaScript::put([
             'employee' => $employee,
         ]);
@@ -84,6 +85,11 @@ class EmployeesController extends Controller
     public function activeEmployees(Request $request)
     {
         return Employee::where('active' , 1)->get();
+    }
+
+    public function employees(Request $request)
+    {
+        return Employee::whereActive(true)->get();
     }
 
     public function getOneEmployee(Employee $employee)

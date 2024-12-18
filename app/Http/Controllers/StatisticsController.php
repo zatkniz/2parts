@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use Carbon\Carbon;
+use App\Models\Fund;
+use App\Models\Outfund;
 
 class StatisticsController extends Controller
 {
@@ -38,7 +41,7 @@ class StatisticsController extends Controller
 
     public function monthly(){
         $dt = Carbon::now();
-        $funds[0] = Fund::select([
+        $funds[0] = Fund::where('isOffer' , 0)->select([
             \DB::raw('sum(cost) as `sum` , sum(payment) as `payment`'), 
             \DB::raw('DATE(created_at) as day')
           ])->groupBy('day')
@@ -54,15 +57,15 @@ class StatisticsController extends Controller
           ->whereMonth('created_at' , $dt->month)
           ->whereYear('created_at' , $dt->year)
           ->get();
-        $funds[2] = Fund::
+        $funds[2] = Fund::where('isOffer' , 0)->
           whereMonth('created_at' , $dt->month)
           ->whereYear('created_at' , $dt->year)
           ->sum('cost');
-        $funds[3] = Fund::
+        $funds[3] = Fund::where('isOffer' , 0)->
           whereMonth('created_at' , $dt->month)
           ->whereYear('created_at' , $dt->year)
           ->count();
-          $funds[4] = Fund::
+          $funds[4] = Fund::where('isOffer' , 0)->
           whereMonth('created_at' , $dt->month)
           ->whereYear('created_at' , $dt->year)
           ->sum('payment');
@@ -75,7 +78,7 @@ class StatisticsController extends Controller
 
     public function monthlyOtherMonth($month , $year){
         $dt = Carbon::now();
-        $funds[0] = Fund::select([
+        $funds[0] = Fund::where('isOffer' , 0)->select([
             \DB::raw('sum(cost) as `sum` , sum(payment) as `payment`'), 
             \DB::raw('DATE(created_at) as day')
           ])->groupBy('day')
@@ -91,15 +94,15 @@ class StatisticsController extends Controller
           ->whereMonth('created_at' , $month)
           ->whereYear('created_at' , $year)
           ->get();
-        $funds[2] = Fund::
+        $funds[2] = Fund::where('isOffer' , 0)->
           whereMonth('created_at' , $month)
           ->whereYear('created_at' , $year)
           ->sum('cost');
-        $funds[3] = Fund::
+        $funds[3] = Fund::where('isOffer' , 0)->
           whereMonth('created_at' , $month)
           ->whereYear('created_at' , $year)
           ->count();
-          $funds[4] = Fund::
+          $funds[4] = Fund::where('isOffer' , 0)->
           whereMonth('created_at' , $month)
           ->whereYear('created_at' , $year)
           ->sum('payment');
@@ -112,7 +115,7 @@ class StatisticsController extends Controller
 
     public function monthlyOtherMonthUser($month , $year , $user){
         $dt = Carbon::now();
-        $funds[0] = Fund::select([
+        $funds[0] = Fund::where('isOffer' , 0)->select([
             \DB::raw('sum(cost) as `sum` , sum(payment) as `payment`'), 
             \DB::raw('DATE(created_at) as day')
           ])->groupBy('day')
@@ -129,17 +132,17 @@ class StatisticsController extends Controller
           ->whereMonth('created_at' , $month)
           ->whereYear('created_at' , $year)
           ->get();
-        $funds[2] = Fund::
+        $funds[2] = Fund::where('isOffer' , 0)->
           where('customer_id' , '=' , $user)
           ->whereMonth('created_at' , $month)
           ->whereYear('created_at' , $year)
           ->sum('cost');
-        $funds[3] = Fund::
+        $funds[3] = Fund::where('isOffer' , 0)->
           where('customer_id' , '=' , $user)
           ->whereMonth('created_at' , $month)
           ->whereYear('created_at' , $year)
           ->count();
-          $funds[4] = Fund::
+          $funds[4] = Fund::where('isOffer' , 0)->
           where('customer_id' , '=' , $user)
           ->whereMonth('created_at' , $month)
           ->whereYear('created_at' , $year)
@@ -190,7 +193,7 @@ class StatisticsController extends Controller
         $dt = Carbon::now();
         $dateFrom = $year.'-'.$month.'-01';
         $dateTo = $yearTo.'-'.$monthTo.'-01';
-        $funds[0] = Fund::select([
+        $funds[0] = Fund::where('isOffer' , 0)->select([
             \DB::raw('sum(cost) as `sum` , sum(payment) as `payment`'), 
             \DB::raw('DATE(created_at) as day')
           ])->groupBy('day')
@@ -204,13 +207,13 @@ class StatisticsController extends Controller
           // And restrict these results to only those created in the last week
           ->whereBetween('created_at' , [$dateFrom, $dateTo])
           ->get();
-        $funds[2] = Fund::
+        $funds[2] = Fund::where('isOffer' , 0)->
           whereBetween('created_at' , [$dateFrom, $dateTo])
           ->sum('cost');
-        $funds[3] = Fund::
+        $funds[3] = Fund::where('isOffer' , 0)->
           whereBetween('created_at' , [$dateFrom, $dateTo])
           ->count();
-          $funds[4] = Fund::
+          $funds[4] = Fund::where('isOffer' , 0)->
           whereBetween('created_at' , [$dateFrom, $dateTo])
           ->sum('payment');
           $funds[5] = Outfund::
@@ -223,7 +226,7 @@ class StatisticsController extends Controller
         $dt = Carbon::now();
         $dateFrom = $year.'-'.$month.'-01';
         $dateTo = $yearTo.'-'.$monthTo.'-01';
-        $funds[0] = Fund::select([
+        $funds[0] = Fund::where('isOffer' , 0)->select([
             \DB::raw('sum(cost) as `sum` , sum(payment) as `payment`'), 
             \DB::raw('DATE(created_at) as day')
           ])->groupBy('day')
@@ -238,15 +241,15 @@ class StatisticsController extends Controller
           // And restrict these results to only those created in the last week
           ->whereBetween('created_at' , [$dateFrom, $dateTo])
           ->get();
-        $funds[2] = Fund::
+        $funds[2] = Fund::where('isOffer' , 0)->
           where('customer_id' , '=' , $user)
           ->whereBetween('created_at' , [$dateFrom, $dateTo])
           ->sum('cost');
-        $funds[3] = Fund::
+        $funds[3] = Fund::where('isOffer' , 0)->
           where('customer_id' , '=' , $user)
           ->whereBetween('created_at' , [$dateFrom, $dateTo])
           ->count();
-          $funds[4] = Fund::
+          $funds[4] = Fund::where('isOffer' , 0)->
           where('customer_id' , '=' , $user)
           ->whereBetween('created_at' , [$dateFrom, $dateTo])
           ->sum('payment');
@@ -258,7 +261,7 @@ class StatisticsController extends Controller
 
     public function yearStatistics($year){
       $dt = Carbon::now();
-      $funds[0] = Fund::select([
+      $funds[0] = Fund::where('isOffer' , 0)->select([
           \DB::raw('sum(cost) as `sum` , sum(payment) as `payment`'), 
           \DB::raw('MONTH(created_at) as day')
         ])->groupBy('day')
@@ -272,13 +275,13 @@ class StatisticsController extends Controller
         // And restrict these results to only those created in the last week
         ->whereYear('created_at' , $year)
         ->get();
-      $funds[2] = Fund::
+      $funds[2] = Fund::where('isOffer' , 0)->
         whereYear('created_at' , $year)
         ->sum('cost');
-      $funds[3] = Fund::
+      $funds[3] = Fund::where('isOffer' , 0)->
         whereYear('created_at' , $year)
         ->count();
-        $funds[4] = Fund::
+        $funds[4] = Fund::where('isOffer' , 0)->
         whereYear('created_at' , $year)
         ->sum('payment');
         $funds[5] = Outfund::
@@ -289,7 +292,7 @@ class StatisticsController extends Controller
 
     public function yearStatisticsUser($year , $user){
       $dt = Carbon::now();
-      $funds[0] = Fund::select([
+      $funds[0] = Fund::where('isOffer' , 0)->select([
           \DB::raw('sum(cost) as `sum` , sum(payment) as `payment`'), 
           \DB::raw('MONTH(created_at) as day')
         ])->groupBy('day')
@@ -304,15 +307,15 @@ class StatisticsController extends Controller
         // And restrict these results to only those created in the last week
         ->whereYear('created_at' , $year)
         ->get();
-      $funds[2] = Fund::
+      $funds[2] = Fund::where('isOffer' , 0)->
         where('customer_id' , '=' , $user)
         ->whereYear('created_at' , $year)
         ->sum('cost');
-      $funds[3] = Fund::
+      $funds[3] = Fund::where('isOffer' , 0)->
         where('customer_id' , '=' , $user)
         ->whereYear('created_at' , $year)
         ->count();
-        $funds[4] = Fund::
+        $funds[4] = Fund::where('isOffer' , 0)->
         where('customer_id' , '=' , $user)
         ->whereYear('created_at' , $year)
         ->sum('payment');
@@ -354,7 +357,7 @@ class StatisticsController extends Controller
 
     public function allStatistics(){
       $dt = Carbon::now();
-      $funds[0] = Fund::select([
+      $funds[0] = Fund::where('isOffer' , 0)->select([
           \DB::raw('sum(cost) as `sum` , sum(payment) as `payment`'), 
           \DB::raw('YEAR(created_at) as day')
         ])->groupBy('day')
@@ -366,16 +369,16 @@ class StatisticsController extends Controller
         ])->groupBy('day')
         // And restrict these results to only those created in the last week
         ->get();
-      $funds[2] = Fund::sum('cost');
-      $funds[3] = Fund::count();
-        $funds[4] = Fund::sum('payment');
+      $funds[2] = Fund::where('isOffer' , 0)->sum('cost');
+      $funds[3] = Fund::where('isOffer' , 0)->count();
+        $funds[4] = Fund::where('isOffer' , 0)->sum('payment');
         $funds[5] = Outfund::sum('total');
       return $funds;
   }
 
     public function allStatisticsUser($user){
       $dt = Carbon::now();
-      $funds[0] = Fund::select([
+      $funds[0] = Fund::where('isOffer' , 0)->select([
           \DB::raw('sum(cost) as `sum` , sum(payment) as `payment`'), 
           \DB::raw('YEAR(created_at) as day')
         ])->groupBy('day')
@@ -388,9 +391,9 @@ class StatisticsController extends Controller
         ])->groupBy('day')
         // And restrict these results to only those created in the last week
         ->get();
-      $funds[2] = Fund::where('customer_id' , '=' , $user)->sum('cost');
-      $funds[3] = Fund::where('customer_id' , '=' , $user)->count();
-        $funds[4] = Fund::where('customer_id' , '=' , $user)->sum('payment');
+      $funds[2] = Fund::where('isOffer' , 0)->where('customer_id' , '=' , $user)->sum('cost');
+      $funds[3] = Fund::where('isOffer' , 0)->where('customer_id' , '=' , $user)->count();
+        $funds[4] = Fund::where('isOffer' , 0)->where('customer_id' , '=' , $user)->sum('payment');
         $funds[5] = Outfund::sum('total');
       return $funds;
   }

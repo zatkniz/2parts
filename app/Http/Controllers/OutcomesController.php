@@ -4,12 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Outcome;
-use App\Outfund;
+use App\Models\Outcome;
+use App\Models\Outfund;
 use Carbon\Carbon;
 use Event;
 use App\Events\FundSaved;
-
 class OutcomesController extends Controller
 {
     public function all(){
@@ -41,7 +40,9 @@ class OutcomesController extends Controller
             ['id' => $request->input('id')],
             [
                 'outcome_id' => $request->input('name'),
-                'total' => $request->input('price'),
+                'total' => $request->input('total'),
+                'is_bank' => $request->input('is_bank') !== null ? $request->input('is_bank') : false,
+                'bank_id' => $request->input('bank_id') !== null ? $request->input('bank_id') : null,
                 'delivery_id' => $request->input('delivery_id')
             ]
         );
@@ -52,9 +53,15 @@ class OutcomesController extends Controller
     public function saveOutcome(Request $request){
         $outfund = new Outfund;
         $outfund->outcome_id = $request->input('name');
-        $outfund->total = $request->input('price');
+        $outfund->total = $request->input('total');
         $outfund->delivery_id = $request->input('delivery_id');
-        $outfund->created_at = Carbon::createFromDate( $request->input('pastDate')[2], $request->input('pastDate')[1], $request->input('pastDate')[0]);        
+        $outfund->is_bank = $request->input('is_bank') !== null ? $request->input('is_bank') : false;
+        $outfund->bank_id = $request->input('bank_id') !== null ? $request->input('bank_id') : null;
+
+        if($request->has('pastDate')){
+            $outfund->created_at = Carbon::createFromDate($request->input('pastDate'));
+        }
+        // $outfund->created_at = Carbon::createFromDate( $request->input('pastDate')[2], $request->input('pastDate')[1], $request->input('pastDate')[0]);        
         $outfund->save();
         broadcast(new FundSaved())->toOthers();
         return $outfund;

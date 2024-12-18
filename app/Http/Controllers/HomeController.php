@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use JavaScript;
-use App\Customer;
-use App\Part;
-use App\Fund;
-use App\Balance;
-use App\Outfund;;
+use App\Models\Customer;
+use App\Models\Part;
+use App\Models\Fund;
+use App\Models\Balance;
+use App\Models\Outfund;;
 use Carbon\Carbon;
 
 class HomeController extends Controller
@@ -40,7 +40,6 @@ class HomeController extends Controller
                                 ->orderBy('price' , 'DESC')
                                 ->with(['customer' , 'customer.balance'])
                                 ->whereYear( 'created_at' , $dt->year )
-                                ->take(20)
                                 ->get();
         $topOutfunds = Outfund::selectRaw('outcome_id, sum(total) as price , count(*) as count')
                                 ->groupBy('outcome_id')
@@ -55,6 +54,22 @@ class HomeController extends Controller
         $balance = Balance::where('balance' , '>' , '0')->sum('balance');
         $outfund = Outfund::whereYear( 'created_at' , $dt->year )->sum('total');
         $outfundMonth = Outfund::whereYear( 'created_at' , $dt->year )->whereMonth( 'created_at' , $dt->month )->sum('total');
+
+        $data = [
+            "fund" => $fund,
+            "fundPrice" => $fundPrice,
+            "outfundMonth" => $outfundMonth,
+            "balanceMonth" => $balanceMonth,
+            "balance" => $balance,
+            "outfund" => $outfund,
+            "fundMonth" => $fundMonth,
+            "topCustomers" => $topCustomers,
+            "topOutfunds" => $topOutfunds,
+            "fundPriceMonth" => $fundPriceMonth
+        ];
+
+        return response()->json($data);
+
         return view('home' , compact(['fund' , 'fundPrice' , 'outfundMonth' , 'balanceMonth' ,'balance' , 'outfund' , 'fundMonth' , 'topCustomers' , 'topOutfunds' , 'fundPriceMonth']));
     }
 }

@@ -3,10 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Customer;
-use App\Fund;
-use App\Employee;
-use JavaScript;
+use App\Models\Customer;
+use App\Models\Fund;
+use App\Models\Employee;
 use Carbon\Carbon;
 
 class CustomersController extends Controller
@@ -50,6 +49,16 @@ class CustomersController extends Controller
                             ->sum('payment');
                             $summaries[2] = $result[0] - $result[1];
         $employees = Employee::whereActive(1)->get();
+
+        $data = [
+            'result' => $result,
+            'stats' => $stats,
+            'funds' => $funds,
+            'summaries' => $summaries,
+            'employees' => $employees,
+        ];
+
+        return response()->json($data);
         JavaScript::put([
             'result' => $result,
             'stats' => $stats,
@@ -74,6 +83,15 @@ class CustomersController extends Controller
                             $summaries[1] = (float)Fund::where('isOffer' , 0)->where('customer_id', '=', $id->id)
                             ->sum('payment');
                             $summaries[2] = $result[0] - $result[1];
+
+        $data = [
+            'result' => $result,
+            'stats' => $stats,
+            'funds' => $funds,
+            'summaries' => $summaries,
+        ];
+
+        return response()->json($data);
         JavaScript::put([
             'result' => $result,
             'stats' => $stats,
@@ -104,6 +122,13 @@ class CustomersController extends Controller
                         ->whereBetween('created_at', [$dateFrom, $dateTo])
                             ->sum('payment');
         $summaries[2] = $result[0] - $result[1];
+        return [
+            'result' => $result,
+            'stats' => $stats,
+            'funds' => $funds,
+            'summaries' => $summaries,
+        ];
+        
         JavaScript::put([
             'result' => $result,
             'stats' => $stats,
@@ -111,6 +136,13 @@ class CustomersController extends Controller
             'summaries' => $summaries,
         ]);
         return view('customers-single' , compact(['result']));
+    }
+
+    public function getLastPrice (Request $request, $customer) {
+        return Fund::whereCustomerId($customer)
+                    ->where('parts_codes', 'like', "%{$request->input('code')}%")
+                    ->orderBy('created_at', 'desc')
+                    ->first();
     }
 
     public function singleCustomerWithPastFundsResult(Request $request , Customer $id , $date)

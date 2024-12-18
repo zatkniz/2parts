@@ -3,9 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use JavaScript;
-use App\User;
-use App\Notification;
+use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Event;

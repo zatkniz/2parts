@@ -2,14 +2,14 @@
 
 namespace App;
 
-use Illuminate\Notifications\Notifiable;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Passport\HasApiTokens;
 
-use Carbon\Carbon;
-
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
-    use Notifiable;
+    use HasApiTokens, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -17,7 +17,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'name', 'email', 'password','username',
+        'name', 'email', 'password', 'surname', 'status', 'user_role_id', 'email_verified_at'
     ];
 
     /**
@@ -29,92 +29,27 @@ class User extends Authenticatable
         'password', 'remember_token',
     ];
 
-    public function countFunds()
+    /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
+
+    public function company()
     {
-        return $this->hasOne('App\Fund')
-                    ->selectRaw('user_id, count(*) as count , sum(cost) as price , sum(payment) as payment')
-                    ->where('body' , '!=' , 'Είσπραξη')
-                    ->where('price' , '>' , 0)                    
-                    ->where('body' , 'NOT LIKE' , '%Αριθ. Τιμόλ')
-                    ->where('body' , 'NOT LIKE' , '%Είσπραξη')
-                    ->where('body' , 'NOT LIKE' , '%Αριθ. Πιστωτικού')
-                    ->groupBy('user_id');
-    }
-    
-    public function countYearFunds()
-    {
-        return $this->hasOne('App\Fund')
-                    ->selectRaw('user_id, count(*) as count , sum(cost) as price , sum(payment) as payment')
-                    ->where('body' , '!=' , 'Είσπραξη')
-                    ->where('price' , '>' , 0)                    
-                    ->where('body' , 'NOT LIKE' , '%Αριθ. Τιμόλ')
-                    ->where('body' , 'NOT LIKE' , '%Είσπραξη')
-                    ->where('body' , 'NOT LIKE' , '%Αριθ. Πιστωτικού')
-                    ->groupBy('user_id')
-                    ->whereYear('created_at' , Carbon::now()->year);
+        return $this->belongsToMany('App\Company');
     }
 
-    public function countMonthFunds()
+    public function favorites()
     {
-        return $this->hasOne('App\Fund')
-                    ->selectRaw('user_id, count(*) as count , sum(cost) as price , sum(payment) as payment')
-                    ->where('body' , '!=' , 'Είσπραξη')
-                    ->where('price' , '>' , 0)                    
-                    ->where('body' , 'NOT LIKE' , '%Αριθ. Τιμόλ')
-                    ->where('body' , 'NOT LIKE' , '%Είσπραξη')
-                    ->where('body' , 'NOT LIKE' , '%Αριθ. Πιστωτικού')                 
-                    ->groupBy('user_id')
-                    ->whereMonth('created_at' , Carbon::now()->month)
-                    ->whereYear('created_at' , Carbon::now()->year);
+        return $this->hasMany('App\Favorite');
     }
 
-    public function countWeekFunds()
+    public function userRole()
     {
-        return $this->hasOne('App\Fund')
-                    ->selectRaw('user_id, count(*) as count , sum(cost) as price , sum(payment) as payment')
-                    ->where('body' , '!=' , 'Είσπραξη')
-                    ->where('price' , '>' , 0)                    
-                    ->where('body' , 'NOT LIKE' , '%Αριθ. Τιμόλ')
-                    ->where('body' , 'NOT LIKE' , '%Είσπραξη')
-                    ->where('body' , 'NOT LIKE' , '%Αριθ. Πιστωτικού')
-                    ->groupBy('user_id')
-                    ->whereBetween('created_at', [Carbon::now()->startOfWeek()->format('Y-m-d'), Carbon::now()->endOfWeek()->format('Y-m-d')]);
-    }
-
-    public function countDailyFunds()
-    {
-        return $this->hasOne('App\Fund')
-                    ->selectRaw('user_id, count(*) as count , sum(cost) as price , sum(payment) as payment')
-                    ->where('body' , '!=' , 'Είσπραξη')
-                    ->where('price' , '>' , 0)                    
-                    ->where('body' , 'NOT LIKE' , '%Αριθ. Τιμόλ')
-                    ->where('body' , 'NOT LIKE' , '%Είσπραξη')
-                    ->where('body' , 'NOT LIKE' , '%Αριθ. Πιστωτικού')
-                    ->groupBy('user_id')
-                    ->where('created_at', '>=' , Carbon::today());
-    }
-
-    public function MonthlyFunds()
-    {
-        return $this->hasMany('App\Fund')
-                    ->selectRaw('user_id, count(*) as count , sum(cost) as price, MONTH(created_at) month')
-                    ->where('body' , '!=' , 'Είσπραξη')
-                    ->where('price' , '>' , 0)                    
-                    ->where('body' , 'NOT LIKE' , '%Αριθ. Τιμόλ')
-                    ->where('body' , 'NOT LIKE' , '%Είσπραξη')
-                    ->where('body' , 'NOT LIKE' , '%Αριθ. Πιστωτικού')
-                    ->groupBy(['user_id' , 'month']);
-    }
-
-    public function MonthlyFundsDaily()
-    {
-        return $this->hasMany('App\Fund')
-                    ->selectRaw('user_id, count(*) as count , sum(cost) as price, CAST(created_at AS date) date')
-                    ->where('body' , '!=' , 'Είσπραξη')
-                    ->where('price' , '>' , 0)                    
-                    ->where('body' , 'NOT LIKE' , '%Αριθ. Τιμόλ')
-                    ->where('body' , 'NOT LIKE' , '%Είσπραξη')
-                    ->where('body' , 'NOT LIKE' , '%Αριθ. Πιστωτικού')
-                    ->groupBy(['user_id' , 'date']);
+        return $this->belongsTo('App\UserRole');
     }
 }
