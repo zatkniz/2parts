@@ -216,14 +216,160 @@ class FundsController extends Controller
 
     public function offers(Request $request)
     {
-        return Fund::with(['customer' , 'customer.balance' , 'user' , 'lastUser'])
-                    ->orderBy('created_at' , 'ASC')
-                    ->where('isOffer' , 1)
-					->where('created_at', '>=', Carbon::now()->subMonths(2))
-                    ->get()
-                    ->groupBy(function ($item, $key) {
-                        return $item['customer']['name'];
-                    });
+        $query = "
+            SELECT funds.*, 
+                   customers.name as customer_name, 
+                   customers.email as customer_email, 
+                   customers.address as customer_address, 
+                   customers.created_at as customer_created_at, 
+                   customers.updated_at as customer_updated_at, 
+                   customers.afm as customer_afm, 
+                   customers.tel as customer_tel, 
+                   customers.tel2 as customer_tel2, 
+                   customers.mobile as customer_mobile, 
+                   customers.fax as customer_fax, 
+                   customers.doy as customer_doy, 
+                   customers.brand as customer_brand, 
+                   customers.incharge as customer_incharge, 
+                   customers.state as customer_state, 
+                   customers.job as customer_job, 
+                   customers.active as customer_active, 
+                   customers.employee_id as customer_employee_id, 
+                   customers.limit as customer_limit, 
+                   balances.id as balance_id, 
+                   balances.customer_id as balance_customer_id, 
+                   balances.balance as balance_balance, 
+                   balances.created_at as balance_created_at, 
+                   balances.updated_at as balance_updated_at, 
+                   users.id as user_id, 
+                   users.name as user_name, 
+                   users.email as user_email, 
+                   users.username as user_username, 
+                   users.created_at as user_created_at, 
+                   users.updated_at as user_updated_at, 
+                   users.role as user_role, 
+                   users.active as user_active, 
+                   last_users.id as last_user_id, 
+                   last_users.name as last_user_name, 
+                   last_users.email as last_user_email, 
+                   last_users.username as last_user_username, 
+                   last_users.created_at as last_user_created_at, 
+                   last_users.updated_at as last_user_updated_at, 
+                   last_users.role as last_user_role, 
+                   last_users.active as last_user_active,
+				   frames.name as frame_name
+            FROM funds
+            LEFT JOIN customers ON funds.customer_id = customers.id
+            LEFT JOIN balances ON customers.id = balances.customer_id
+            LEFT JOIN users ON funds.user_id = users.id
+			LEFT JOIN frames ON funds.frame_id = frames.id
+            LEFT JOIN users as last_users ON funds.last_user_id = last_users.id
+            WHERE funds.isOffer = 1
+            AND funds.created_at >= ?
+            ORDER BY funds.created_at ASC
+        ";
+    
+        $funds = \DB::select($query, [Carbon::now()->subMonths(2)]);
+    
+        $transformedFunds = collect($funds)->map(function ($fund) {
+            return [
+                'id' => $fund->id,
+                'fund_code' => $fund->fund_code,
+                'body' => $fund->body,
+                'earnings' => $fund->earnings,
+                'saved_body' => $fund->saved_body,
+                'parts_codes' => $fund->parts_codes,
+                'parts_places' => $fund->parts_places,
+                'price' => $fund->price,
+                'saved_price' => $fund->saved_price,
+                'cars' => $fund->cars,
+                'cost' => $fund->cost,
+                'car_model' => $fund->car_model,
+                'payment' => $fund->payment,
+                'total' => $fund->total,
+                'user_id' => $fund->user_id,
+                'last_user_id' => $fund->last_user_id,
+                'customer_id' => $fund->customer_id,
+                'isInvoice' => $fund->isInvoice,
+                'isReceipt' => $fund->isReceipt,
+                'hasPay' => $fund->hasPay,
+                'created_at' => $fund->created_at,
+                'updated_at' => $fund->updated_at,
+                'isProvince' => $fund->isProvince,
+                'provinceCode' => $fund->provinceCode,
+                'provinceWay' => $fund->provinceWay,
+                'deposit' => $fund->deposit,
+                'credit' => $fund->credit,
+                'isOffer' => $fund->isOffer,
+                'comments' => $fund->comments,
+                'isBank' => $fund->isBank,
+                'delivery_id' => $fund->delivery_id,
+                'bank_id' => $fund->bank_id,
+                'frame_id' => $fund->frame_id,
+                'frame' => [
+                    'id' => $fund->frame_id,
+                    'name' => $fund->frame_name,
+                    // 'model' => $fund->frame_model,
+                    // 'year' => $fund->frame_year,
+                    // 'created_at' => $fund->frame_created_at,
+                    // 'updated_at' => $fund->frame_updated_at,
+                ],
+                'customer' => [
+                    'id' => $fund->customer_id,
+                    'name' => $fund->customer_name,
+                    'email' => $fund->customer_email,
+                    'address' => $fund->customer_address,
+                    'created_at' => $fund->customer_created_at,
+                    'updated_at' => $fund->customer_updated_at,
+                    'afm' => $fund->customer_afm,
+                    'tel' => $fund->customer_tel,
+                    'tel2' => $fund->customer_tel2,
+                    'mobile' => $fund->customer_mobile,
+                    'fax' => $fund->customer_fax,
+                    'doy' => $fund->customer_doy,
+                    'brand' => $fund->customer_brand,
+                    'incharge' => $fund->customer_incharge,
+                    'state' => $fund->customer_state,
+                    'job' => $fund->customer_job,
+                    'active' => $fund->customer_active,
+                    'employee_id' => $fund->customer_employee_id,
+                    'limit' => $fund->customer_limit,
+                    'balance' => [
+                        'id' => $fund->balance_id,
+                        'customer_id' => $fund->balance_customer_id,
+                        'balance' => $fund->balance_balance,
+                        'created_at' => $fund->balance_created_at,
+                        'updated_at' => $fund->balance_updated_at,
+                    ],
+                ],
+                'user' => [
+                    'id' => $fund->user_id,
+                    'name' => $fund->user_name,
+                    'email' => $fund->user_email,
+                    'username' => $fund->user_username,
+                    'created_at' => $fund->user_created_at,
+                    'updated_at' => $fund->user_updated_at,
+                    'role' => $fund->user_role,
+                    'active' => $fund->user_active,
+                ],
+                'last_user' => [
+                    'id' => $fund->last_user_id,
+                    'name' => $fund->last_user_name,
+                    'email' => $fund->last_user_email,
+                    'username' => $fund->last_user_username,
+                    'created_at' => $fund->last_user_created_at,
+                    'updated_at' => $fund->last_user_updated_at,
+                    'role' => $fund->last_user_role,
+                    'active' => $fund->last_user_active,
+                ],
+            ];
+        });
+
+        $transformedFunds = collect($transformedFunds) ->groupBy(function ($item, $key) {
+            return $item['customer']['name'];
+        });
+    
+        return response()->json($transformedFunds);
     }
 
     public function allProvince(Request $request)

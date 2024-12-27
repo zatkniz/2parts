@@ -80,6 +80,7 @@ Route::group(['middleware' => ['auth:api']], function() {
 
     Route::get('/all-customers', [App\Http\Controllers\CustomersController::class, 'all']);
     Route::get('/all-customers-detailed', [App\Http\Controllers\CustomersController::class, 'detailed']);
+    Route::get('/all-customers-balances', [App\Http\Controllers\CustomersController::class, 'customerBalances']);
 
     //Ypoloipa
     Route::get('/balances', [App\Http\Controllers\BalancesController::class, 'index']);

@@ -32,6 +32,22 @@ class CustomersController extends Controller
                         ->paginate($request->get('itemsPerPage') , ['*'] , 'page' , $request->get('page'));
     }
 
+    public function customerBalances(Request $request)
+    {   
+        $query = "
+            SELECT customers.name, balances.balance
+            FROM customers
+            LEFT JOIN balances ON customers.id = balances.customer_id
+            WHERE customers.active = 1
+            AND balances.balance > 0
+            ORDER BY customers.name
+        ";
+
+        $customers = \DB::select($query);
+
+        return response()->json($customers);
+    }
+
     public function quickSearch(Request $request)
     {
         return Customer::where('name' , 'like' , '%'.$request->input('name').'%')->get();
